@@ -1,4 +1,5 @@
 import { Router } from "express";
+import upload from "../Middleware/Multer.js";
 import WebSeriesController from "./WebSeriesController.js";
 
 const router = Router();
