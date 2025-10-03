@@ -27,18 +27,18 @@ app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 
 // Static folder for videos
-app.use("/videos", express.static("uploads/videos"));
+app.use("/api/videos", express.static("uploads/videos"));
 
 // DB connection
 db();
 
 // Routes
-app.use("/user", UserRouter);
-app.use("/movise", MoviseRouter);
-app.use("/order", OrderRouter);
-app.use("/premium", PremiumRouter);
-app.use("/withdrawal", WithdrawalRouter);
-app.use("/api/webseries", WebSeriesRouter);
+app.use("/api/user", UserRouter);
+app.use("/api/movise", MoviseRouter);
+app.use("/api/order", OrderRouter);
+app.use("/api/premium", PremiumRouter);
+app.use("/api/withdrawal", WithdrawalRouter);
+app.use("/api/api/webseries", WebSeriesRouter);
 
 const port = process.env.PORT || 7000;
 app.listen(port, "0.0.0.0", () => {
