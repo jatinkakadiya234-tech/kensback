@@ -62,7 +62,7 @@ UserSchema.pre("save", async function (next) {
     }
 
     this.referralCode = code;
-    this.referralLink = `http://localhost:5173/register?ref=${code}`;
+    this.referralLink = `https://kensdrive.co.in/register?ref=${code}`;
   }
   next();
 });
