@@ -38,7 +38,7 @@ const OrderController = {
       const order = await razorpay.orders.create(options);
       const data = {
         ...result.toObject(),
-        razorpayDetails: { ...order, api_key: "rzp_test_zGCQXPmnJfWXkO" },
+        razorpayDetails: { ...order, api_key: "rzp_live_RQ5RTynNmBshtz" },
       };
 
       return res.status(StatusCodes.SUCCESS.code).send({
