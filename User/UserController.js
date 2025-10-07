@@ -49,29 +49,29 @@ register: async (req, res) => {
     await newUser.save();
 
     // Credit points if referral used
-    if (referrer) {
-      await UserModel.findByIdAndUpdate(referrer._id, {
-        $inc: { walletPoints: BONUS_REFERRER },
-        $push: {
-          walletTransactions: {
-            type: "credit",
-            points: BONUS_REFERRER,
-            reason: `Referral bonus for inviting ${newUser.email}`,
-          },
-        },
-      });
+    // if (referrer) {
+    //   await UserModel.findByIdAndUpdate(referrer._id, {
+    //     $inc: { walletPoints: BONUS_REFERRER },
+    //     $push: {
+    //       walletTransactions: {
+    //         type: "credit",
+    //         points: BONUS_REFERRER,
+    //         reason: `Referral bonus for inviting ${newUser.email}`,
+    //       },
+    //     },
+    //   });
 
-      await UserModel.findByIdAndUpdate(newUser._id, {
-        $inc: { walletPoints: BONUS_NEW_USER },
-        $push: {
-          walletTransactions: {
-            type: "credit",
-            points: BONUS_NEW_USER,
-            reason: `Welcome bonus for using referral ${referralCode}`,
-          },
-        },
-      });
-    }
+    //   await UserModel.findByIdAndUpdate(newUser._id, {
+    //     $inc: { walletPoints: BONUS_NEW_USER },
+    //     $push: {
+    //       walletTransactions: {
+    //         type: "credit",
+    //         points: BONUS_NEW_USER,
+    //         reason: `Welcome bonus for using referral ${referralCode}`,
+    //       },
+    //     },
+    //   });
+    // }
 
     return res.status(201).json({
       message: "User registered",
