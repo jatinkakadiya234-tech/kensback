@@ -18,7 +18,7 @@ const s3 = new AWS.S3({
 });
 
 async function zataUpload(filePath, folder, quality = "") {
-  const fileContent = fs.readFileSync(filePath);
+  const fileStream = fs.createReadStream(filePath); // ✅ stream read
   const fileName = `${folder}/${quality ? quality + "/" : ""}${Date.now()}-${Math.round(
     Math.random() * 1e9
   )}${filePath.substring(filePath.lastIndexOf("."))}`;
@@ -26,13 +26,23 @@ async function zataUpload(filePath, folder, quality = "") {
   const params = {
     Bucket: "kenskensdrive",
     Key: fileName,
-    Body: fileContent,
+    Body: fileStream, // ✅ stream instead of full buffer
     ACL: "public-read",
   };
 
-  const data = await s3.upload(params).promise();
-  console.log(data);
-  return data.Location; // public URL
+  // Important for large files:
+  return new Promise((resolve, reject) => {
+    s3.upload(params)
+      .on("httpUploadProgress", (progress) => {
+        console.log(
+          `Uploading ${fileName}: ${(progress.loaded / progress.total * 100).toFixed(2)}%`
+        );
+      })
+      .send((err, data) => {
+        if (err) return reject(err);
+        resolve(data.Location);
+      });
+  });
 }
 
 const MoviesController = {
