@@ -54,9 +54,27 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+// Create a separate storage for chunked uploads
+const chunkStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir_Other);
+  },
+  filename: function (req, file, cb) {
+    // For chunks, use a simple filename to avoid issues
+    cb(null, `${Date.now()}-chunk-${Math.random().toString(36).substr(2, 9)}`);
+  },
+});
+
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 * 1024 } // 10 GB
 });
 
+// Separate upload handler for chunks
+const chunkUpload = multer({
+  storage: chunkStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB per chunk
+});
+
+export { upload, chunkUpload };
 export default upload;

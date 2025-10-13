@@ -1,10 +1,10 @@
 import express from "express";
-import upload from "../Middleware/Multer.js";
+import upload, { chunkUpload } from "../Middleware/Multer.js";
 import MoviesController from "../Movise/MovisController.js";
 
 const MoviseRouter = express.Router();
 
-// Create movie
+// Create movie (regular upload)
 MoviseRouter.post(
   "/uplode",
   upload.fields([
@@ -12,6 +12,18 @@ MoviseRouter.post(
     { name: "image", maxCount: 1 },
   ]),
   MoviesController.createMovie
+);
+
+// Chunked upload endpoints
+MoviseRouter.post("/upload/initialize", MoviesController.initializeChunkedUpload);
+MoviseRouter.post("/upload/chunk", chunkUpload.single('chunk'), MoviesController.uploadChunk);
+MoviseRouter.get("/upload/progress/:uploadId", MoviesController.getUploadProgress);
+MoviseRouter.post(
+  "/upload/complete",
+  upload.fields([
+    { name: "image", maxCount: 1 },
+  ]),
+  MoviesController.createMovieWithChunks
 );
 
 // Get all movies
