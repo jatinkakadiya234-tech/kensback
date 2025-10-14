@@ -1,5 +1,6 @@
 import StatusCodes from "../config/errorHandel.js";
 import UserModel from "./UserModel.js";
+import PremiumModel from "../Premium/PremiumModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -138,7 +139,26 @@ register: async (req, res) => {
       const decode = await jwt.verify(token, process.env.jwt_secrate);
       if (!decode) return res.status(500).send({ message: "Internal server error" });
 
-      return res.status(200).send({ message: "Success", decode });
+      // Get premium plans with pricing
+      const premiumPlans = await PremiumModel.find({ isActive: true });
+      
+      // Calculate pricing in rupees (1 point = ₹7)
+      const pricingInfo = premiumPlans.map(plan => ({
+        name: plan.name,
+        priceInPoints: plan.price,
+        priceInRupees: plan.price * 7,
+        durationInDays: plan.durationInDays,
+        features: plan.features
+      }));
+
+      const userInfo = {
+        ...decode,
+        isPremium: decode.isPremium,
+        walletPoints: decode.walletPoints,
+        premiumPlans: pricingInfo
+      };
+
+      return res.status(200).send({ message: "Success", userInfo });
     } catch (error) {
       console.log(error);
       return res.status(500).send({ message: "Internal server error", error: error.message });
@@ -213,7 +233,31 @@ register: async (req, res) => {
     console.error(error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
-}
+},
+
+  getPremiumPricing: async (req, res) => {
+    try {
+      const premiumPlans = await PremiumModel.find({ isActive: true });
+      
+      const pricingInfo = premiumPlans.map(plan => ({
+        _id: plan._id,
+        name: plan.name,
+        priceInPoints: plan.price,
+        priceInRupees: plan.price * 7, // 1 point = ₹7
+        durationInDays: plan.durationInDays,
+        features: plan.features,
+        createdAt: plan.createdAt
+      }));
+
+      return res.status(200).json({
+        message: "Premium pricing retrieved successfully",
+        plans: pricingInfo
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Server error", error: error.message });
+    }
+  }
 
 }
 
