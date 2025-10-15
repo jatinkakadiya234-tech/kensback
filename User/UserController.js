@@ -1,6 +1,7 @@
 import StatusCodes from "../config/errorHandel.js";
 import UserModel from "./UserModel.js";
 import PremiumModel from "../Premium/PremiumModel.js";
+import OrderModel from "../Order/OrderModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -139,23 +140,39 @@ register: async (req, res) => {
       const decode = await jwt.verify(token, process.env.jwt_secrate);
       if (!decode) return res.status(500).send({ message: "Internal server error" });
 
+      // Get user's premium purchase history
+      const premiumOrders = await OrderModel.find({ 
+        userid: decode._id, 
+        paymentStatus: "completed" 
+      }).sort({ createdAt: -1 });
+
+      // Calculate total premium spent
+      const totalPremiumSpent = premiumOrders.reduce((total, order) => total + order.price, 0);
+      const totalSpentInRupees = totalPremiumSpent * 7; // 1 point = ₹7
+
       // Get premium plans with pricing
       const premiumPlans = await PremiumModel.find({ isActive: true });
       
       // Calculate pricing in rupees (1 point = ₹7)
-      const pricingInfo = premiumPlans.map(plan => ({
-        name: plan.name,
-        priceInPoints: plan.price,
-        priceInRupees: plan.price * 7,
-        durationInDays: plan.durationInDays,
-        features: plan.features
-      }));
+    
 
       const userInfo = {
         ...decode,
         isPremium: decode.isPremium,
         walletPoints: decode.walletPoints,
-        premiumPlans: pricingInfo
+        premiumPurchases: {
+          totalOrders: premiumOrders.length,
+          totalSpentInPoints: totalPremiumSpent,
+          totalSpentInRupees: totalSpentInRupees,
+          recentOrders: premiumOrders.slice(0, 5).map(order => ({
+            premiumType: order.premiumType,
+            price: order.price,
+            priceInRupees: order.price * 7,
+            purchaseDate: order.createdAt,
+            expiresAt: order.expiresAt
+          }))
+        },
+      
       };
 
       return res.status(200).send({ message: "Success", userInfo });
