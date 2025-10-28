@@ -483,47 +483,56 @@ const MoviesController = {
       const { uploadId720, uploadId1080, name, isPremium } = req.body;
       const { image } = req.files;
 
-      if (!uploadId720 || !uploadId1080 || !name || !image) {
+      if (!name || !image) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const upload720 = uploadProgress.get(uploadId720);
-      const upload1080 = uploadProgress.get(uploadId1080);
+      // Look up uploads only if provided
+      const upload720 = uploadId720 ? uploadProgress.get(uploadId720) : null;
+      const upload1080 = uploadId1080 ? uploadProgress.get(uploadId1080) : null;
 
-      if (!upload720 || !upload1080) {
-        return res.status(404).json({ message: "Upload sessions not found" });
+      if (uploadId720 && !upload720) {
+        return res.status(404).json({ message: "Upload session for 720 not found" });
+      }
+      if (uploadId1080 && !upload1080) {
+        return res.status(404).json({ message: "Upload session for 1080 not found" });
       }
 
-      if (upload720.status !== 'completed' || upload1080.status !== 'completed') {
-        return res.status(400).json({ message: "Videos are still being processed" });
+      if (upload720 && upload720.status !== 'completed') {
+        return res.status(400).json({ message: "720p video is still being processed" });
+      }
+      if (upload1080 && upload1080.status !== 'completed') {
+        return res.status(400).json({ message: "1080p video is still being processed" });
       }
 
       // Upload thumbnail
       const [thumbnailUrl] = await Promise.all([zataUpload(image[0].path, "thumbnails")]);
 
       // Save movie
+      // Build qualities object from whichever uploads provided
+      const qualities = {};
+      if (upload720?.finalUrl) qualities["720p"] = upload720.finalUrl;
+      if (upload1080?.finalUrl) qualities["1080p"] = upload1080.finalUrl;
+
       const movie = await MoviseModel.create({
         name,
         isPremium,
-        qualities: {
-          "720p": upload720.finalUrl,
-          "1080p": upload1080.finalUrl,
-        },
+        qualities,
         thumbnail: thumbnailUrl,
       });
 
       // Cleanup
       try {
-        fs.unlinkSync(upload720.assembledPath);
-        fs.unlinkSync(upload1080.assembledPath);
+        if (upload720?.assembledPath && fs.existsSync(upload720.assembledPath)) fs.unlinkSync(upload720.assembledPath);
+        if (upload1080?.assembledPath && fs.existsSync(upload1080.assembledPath)) fs.unlinkSync(upload1080.assembledPath);
         fs.unlinkSync(image[0].path);
       } catch (cleanupErr) {
         console.error("Error cleaning up files:", cleanupErr);
       }
 
       // Remove from progress tracking
-      uploadProgress.delete(uploadId720);
-      uploadProgress.delete(uploadId1080);
+      if (uploadId720) uploadProgress.delete(uploadId720);
+      if (uploadId1080) uploadProgress.delete(uploadId1080);
 
       res.status(201).json({
         success: true,
@@ -535,6 +544,82 @@ const MoviesController = {
       res.status(500).json({
         success: false,
         message: "Failed to create movie",
+        error: error.message,
+      });
+    }
+  },
+
+  // ✅ Update Movie with Chunked Upload (optionally one or both qualities)
+  updateMovieWithChunks: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { uploadId720, uploadId1080, name, isPremium } = req.body;
+      const { image } = req.files || {};
+
+      if (!id) return res.status(400).json({ message: "Movie ID is required" });
+
+      const updates = {};
+      if (name !== undefined) updates.name = name;
+      if (isPremium !== undefined) updates.isPremium = isPremium;
+
+      // If new thumbnail provided
+      if (image && image[0]) {
+        const [thumbnailUrl] = await Promise.all([zataUpload(image[0].path, "thumbnails")]);
+        updates.thumbnail = thumbnailUrl;
+        try { fs.unlinkSync(image[0].path); } catch {}
+      }
+
+      // Collect new quality URLs from completed chunked uploads
+      const newQualities = {};
+      const usedUploadIds = [];
+
+      if (uploadId720) {
+        const up720 = uploadProgress.get(uploadId720);
+        if (!up720) return res.status(404).json({ message: "Upload session for 720 not found" });
+        if (up720.status !== 'completed') return res.status(400).json({ message: "720p video still processing" });
+        newQualities["720p"] = up720.finalUrl;
+        usedUploadIds.push(uploadId720);
+        try { if (up720.assembledPath) fs.unlinkSync(up720.assembledPath); } catch {}
+      }
+
+      if (uploadId1080) {
+        const up1080 = uploadProgress.get(uploadId1080);
+        if (!up1080) return res.status(404).json({ message: "Upload session for 1080 not found" });
+        if (up1080.status !== 'completed') return res.status(400).json({ message: "1080p video still processing" });
+        newQualities["1080p"] = up1080.finalUrl;
+        usedUploadIds.push(uploadId1080);
+        try { if (up1080.assembledPath) fs.unlinkSync(up1080.assembledPath); } catch {}
+      }
+
+      if (Object.keys(newQualities).length > 0) {
+        updates.qualities = newQualities;
+      }
+
+      const movie = await MoviseModel.findById(id);
+      if (!movie) return res.status(StatusCodes.NOT_FOUND.code).send({ message: "Movie not found" });
+
+      // If only partial qualities provided, merge with existing
+      if (updates.qualities) {
+        updates.qualities = {
+          ...movie.qualities,
+          ...updates.qualities,
+        };
+      }
+
+      const updated = await MoviseModel.findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: true });
+
+      // Cleanup used uploadIds
+      usedUploadIds.forEach((uid) => uploadProgress.delete(uid));
+
+      return res.status(StatusCodes.SUCCESS.code).send({
+        message: "Movie updated successfully",
+        data: updated,
+      });
+    } catch (error) {
+      console.error("Error updating movie with chunks:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update movie",
         error: error.message,
       });
     }

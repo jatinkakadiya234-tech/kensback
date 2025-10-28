@@ -42,6 +42,15 @@ MoviseRouter.put(
   MoviesController.updateMovie
 );
 
+// Update movie via chunked upload
+MoviseRouter.post(
+  "/movies/:id/update-chunks",
+  upload.fields([
+    { name: "image", maxCount: 1 },
+  ]),
+  MoviesController.updateMovieWithChunks
+);
+
 // Delete movie
 MoviseRouter.delete("/delete/:id", MoviesController.deleteMovie);
 

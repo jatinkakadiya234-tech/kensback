@@ -11,9 +11,6 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-const BONUS_NEW_USER = 2;   // points for new user
-const BONUS_REFERRER = 10;
-
 const OrderController = {
   createOrder: async (req, res) => {
     try {
@@ -41,7 +38,7 @@ const OrderController = {
       const order = await razorpay.orders.create(options);
       const data = {
         ...result.toObject(),
-        razorpayDetails: { ...order, api_key: "rzp_live_RQ5RTynNmBshtz" },
+        razorpayDetails: { ...order, api_key: "rzp_test_zGCQXPmnJfWXkO" },
       };
 
       return res.status(StatusCodes.SUCCESS.code).send({
@@ -54,126 +51,45 @@ const OrderController = {
     }
   },
 
-  // upgradePremium: async (req, res) => {
-  //   try {
-  //     const { type, orderId, razorpay_order_id, razorpay_payment_id, user } = req.body;
-
-  //     if (!orderId || !razorpay_payment_id || !user || !user._id) {
-  //       return res.status(400).send({ message: "Missing required fields" });
-  //     }
-
-  //     const payment = await razorpay.payments.fetch(razorpay_payment_id);
-  //     if (!payment || payment.status !== "captured") {
-  //       await OrderModel.findByIdAndDelete({ _id: orderId });
-  //       return res.status(400).send({ message: "Payment not successful" });
-  //     }
-
-  //     const orderDoc = await OrderModel.findById(orderId);
-  //     if (!orderDoc) return res.status(404).send({ message: "Order not found" });
-
-  //     await OrderModel.findByIdAndUpdate(orderId, {
-  //       paymentStatus: "completed",
-  //       razorpay_payment_id,
-  //       razorpay_order_id,
-  //     });
-
-  //     await UserModel.findByIdAndUpdate(user._id, {
-  //       isPremium: true,
-  //       premiumType: type,
-  //     });
-
-  //     const userref = await UserModel.findById(user._id);
-  //     console.log(userref);
-  //     if (userref.referredBy) {
-  //       await UserModel.findByIdAndUpdate(userref.referredBy, {
-  //         $inc: { walletPoints: 10, walletTransactions: {
-  //           type: "credit",
-  //           points: 10,
-  //           reason: "Referral bonus for inviting " + user.email,
-  //         } },
-          
-  //       });
-  //     }
-
-
-  //     return res.status(200).send({
-  //       message: "Premium upgraded successfully",
-  //       paymentStatus: "success",
-  //       orderId,
-  //     });
-  //   } catch (error) {
-  //     console.error(error);
-  //     return res.status(500).send({ message: "Server error" });
-  //   }
-  // },
-
-
   upgradePremium: async (req, res) => {
     try {
       const { type, orderId, razorpay_order_id, razorpay_payment_id, user } = req.body;
-  
+
       if (!orderId || !razorpay_payment_id || !user || !user._id) {
         return res.status(400).send({ message: "Missing required fields" });
       }
-  
-      // 1️⃣ Verify Razorpay payment
+
       const payment = await razorpay.payments.fetch(razorpay_payment_id);
       if (!payment || payment.status !== "captured") {
-        await OrderModel.findByIdAndDelete(orderId);
+        await OrderModel.findByIdAndDelete({ _id: orderId });
         return res.status(400).send({ message: "Payment not successful" });
       }
-  
-      // 2️⃣ Check Order existence
+
       const orderDoc = await OrderModel.findById(orderId);
       if (!orderDoc) return res.status(404).send({ message: "Order not found" });
-  
-      // 3️⃣ Update order status
+
       await OrderModel.findByIdAndUpdate(orderId, {
         paymentStatus: "completed",
         razorpay_payment_id,
         razorpay_order_id,
       });
-  
-      // 4️⃣ Upgrade user to premium
+
       await UserModel.findByIdAndUpdate(user._id, {
         isPremium: true,
         premiumType: type,
       });
-  
-      // 5️⃣ Find upgraded user (to check referral)
-      const userRef = await UserModel.findById(user._id);
-  
-      // 6️⃣ If user was referred by someone, give bonus
-      if (userRef?.referredBy) {
-        const referrerId = userRef.referredBy; // 👈 ID of the referrer
-        const bonusPoints = 10;
-  
-        // Find referrer and update points + transaction
-        await UserModel.findByIdAndUpdate(referrerId, {
-          $inc: { walletPoints: bonusPoints },
-          $push: {
-            walletTransactions: {
-              type: "credit",
-              points: bonusPoints,
-              reason: `Referral bonus for paying premium to someone who was referred by you ${userRef.email}`,
-              createdAt: new Date(),
-            },
-          },
-        });
-      }
-  
+
       return res.status(200).send({
         message: "Premium upgraded successfully",
         paymentStatus: "success",
         orderId,
       });
-  
     } catch (error) {
       console.error(error);
-      return res.status(500).send({ message: "Server error", error });
+      return res.status(500).send({ message: "Server error" });
     }
-  }
-,  
+  },
+
   totelErnings: async (req, res) => {
     try {
       const result = await OrderModel.find();

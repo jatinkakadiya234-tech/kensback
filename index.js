@@ -38,7 +38,7 @@ app.use("/api/movise", MoviseRouter);
 app.use("/api/order", OrderRouter);
 app.use("/api/premium", PremiumRouter);
 app.use("/api/withdrawal", WithdrawalRouter);
-app.use("/api/api/webseries", WebSeriesRouter);
+app.use("/api/webseries", WebSeriesRouter);
 
 const port = process.env.PORT || 7000;
 app.listen(port, "0.0.0.0", () => {

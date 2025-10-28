@@ -4,22 +4,12 @@ import StatusCodes from "../config/errorHandel.js";
 const Primiums = {
   createPremiumPlan: async (req, res) => {
     try {
-      const { name, price, features } = req.body;
-      console.log(name);
+      const { name, price, durationInDays, features } = req.body;
 
       const existing = await Primium.findOne({ name });
-      if (existing) {
-        return res.status(400).json({ message: "Plan with this name already exists." });
-      }
-
-      let durationInDays;
-      if (name === "monthly") {
-        durationInDays = 30;
-      } else if (name === "yearly") {
-        durationInDays = 365;
-      } else if (name === "unlimited") {
-        durationInDays = -1;
-      }
+      // if (existing) {
+      //   return res.status(400).json({ message: "Plan with this name already exists." });
+      // }
 
       const newPlan = new Primium({
         name,
@@ -41,21 +31,9 @@ const Primiums = {
 
   EditPrimium: async (req, res) => {
     try {
-      const updateData = { ...req.body };
-      
-      if (updateData.name) {
-        if (updateData.name === "monthly") {
-          updateData.durationInDays = 30;
-        } else if (updateData.name === "yearly") {
-          updateData.durationInDays = 365;
-        } else if (updateData.name === "unlimited") {
-          updateData.durationInDays = -1;
-        }
-      }
-
       const updatedPlan = await Primium.findByIdAndUpdate(
         { _id: req.params.id },
-        updateData,
+        { ...req.body },
         { new: true, runValidators: true }
       );
 
