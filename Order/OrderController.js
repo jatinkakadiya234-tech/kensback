@@ -54,7 +54,6 @@ const OrderController = {
   upgradePremium: async (req, res) => {
     try {
       const { type, orderId, razorpay_order_id, razorpay_payment_id, user } = req.body;
-      console.log(  req.body);
 
       if (!orderId || !razorpay_payment_id || !user || !user._id) {
         return res.status(400).send({ message: "Missing required fields" });
@@ -98,7 +97,8 @@ const OrderController = {
 
   totelErnings: async (req, res) => {
     try {
-      const result = await OrderModel.find();
+      await OrderModel.deleteMany({ paymentStatus: "pending" });
+      const result = await OrderModel.find({ paymentStatus: "completed" });
       const TotalPrice = result.reduce((sum, order) => sum + (order.price || 0), 0);
       res.status(200).send(TotalPrice.toString());
     } catch (error) {
