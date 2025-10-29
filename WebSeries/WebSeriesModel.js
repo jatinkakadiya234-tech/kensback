@@ -7,8 +7,8 @@ const EpisodeSchema = new Schema(
 	{
 		episodeNumber: { type: Number, required: true, min: 1 },
 		qualities: {
-			"720p": { type: String, required: true, trim: true },
-			"1080p": { type: String, required: true, trim: true },
+			"720p": { type: String,  trim: true },
+			"1080p": { type: String,  trim: true },
 		},
 	},
 	{ _id: false}

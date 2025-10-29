@@ -54,6 +54,7 @@ const OrderController = {
   upgradePremium: async (req, res) => {
     try {
       const { type, orderId, razorpay_order_id, razorpay_payment_id, user } = req.body;
+      console.log(  req.body);
 
       if (!orderId || !razorpay_payment_id || !user || !user._id) {
         return res.status(400).send({ message: "Missing required fields" });
@@ -63,6 +64,11 @@ const OrderController = {
       if (!payment || payment.status !== "captured") {
         await OrderModel.findByIdAndDelete({ _id: orderId });
         return res.status(400).send({ message: "Payment not successful" });
+      }
+
+      if (payment.status === "pending") {
+        await OrderModel.findByIdAndDelete({ _id: orderId });
+        return res.status(400).send({ message: "Payment is pending, order deleted" });
       }
 
       const orderDoc = await OrderModel.findById(orderId);

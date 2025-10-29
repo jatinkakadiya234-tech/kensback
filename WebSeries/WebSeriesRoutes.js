@@ -37,9 +37,9 @@ router.post("/upload/chunk", chunkUpload.single('chunk'), WebSeriesController.up
 router.get("/upload/progress/:uploadId", WebSeriesController.getUploadProgress);
 
 // Add episode using chunked upload ids
-router.post(":id/seasons/:seasonNumber/episodes/chunks", upload.none(), WebSeriesController.addEpisodeWithChunks);
+router.post("/:id/seasons/:seasonNumber/episodes/chunks", upload.none(), WebSeriesController.addEpisodeWithChunks);
 // Update existing episode using chunks
-router.post(":id/seasons/:seasonNumber/episodes/:episodeNumber/update-chunks", upload.none(), WebSeriesController.updateEpisodeWithChunks);
+router.post("/:id/seasons/:seasonNumber/episodes/:episodeNumber/update-chunks", upload.none(), WebSeriesController.updateEpisodeWithChunks);
 
 export default router;
 
