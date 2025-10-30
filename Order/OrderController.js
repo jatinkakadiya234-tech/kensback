@@ -91,13 +91,13 @@ const OrderController = {
           $inc: { walletPoints: 10 }
         });
         
-        // Create history entry
+        // Create wallet transaction entry
         await UserModel.findByIdAndUpdate(currentUser.referredBy, {
           $push: {
-            pointsHistory: {
+            walletTransactions: {
               points: 10,
               type: "referral_reward",
-              description: "Referral payment reward - 10 points earned",
+              reason: `Referral reward - 10 points for user ${currentUser.name}`,
               createdAt: new Date()
             }
           }
