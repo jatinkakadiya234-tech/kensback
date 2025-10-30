@@ -84,6 +84,26 @@ const OrderController = {
         premiumType: type,
       });
 
+      // Find referring user and add 10 points
+      const currentUser = await UserModel.findById(user._id);
+      if (currentUser?.referredBy) {
+        await UserModel.findByIdAndUpdate(currentUser.referredBy, {
+          $inc: { walletPoints: 10 }
+        });
+        
+        // Create history entry
+        await UserModel.findByIdAndUpdate(currentUser.referredBy, {
+          $push: {
+            pointsHistory: {
+              points: 10,
+              type: "referral_reward",
+              description: "Referral payment reward - 10 points earned",
+              createdAt: new Date()
+            }
+          }
+        });
+      }
+
       return res.status(200).send({
         message: "Premium upgraded successfully",
         paymentStatus: "success",
