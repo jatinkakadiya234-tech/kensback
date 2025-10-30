@@ -96,7 +96,7 @@ const OrderController = {
           $push: {
             walletTransactions: {
               points: 10,
-              type: "referral_reward",
+              type: "credit",
               reason: `Referral reward - 10 points for user ${currentUser.name}`,
               createdAt: new Date()
             }
