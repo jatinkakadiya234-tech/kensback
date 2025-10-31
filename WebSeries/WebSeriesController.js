@@ -192,7 +192,7 @@ const WebSeriesController = {
     updateEpisodeWithChunks: async (req, res) => {
         try {
             const { id, seasonNumber, episodeNumber } = req.params;
-            const { uploadId720, uploadId1080 } = req.body;
+            const { uploadId720, uploadId1080, episodeTitle, episodeDescription } = req.body;
             const up720 = uploadId720 ? uploadProgress.get(uploadId720) : null;
             const up1080 = uploadId1080 ? uploadProgress.get(uploadId1080) : null;
             if (uploadId720 && (!up720 || up720.status !== 'completed')) return res.status(400).json({ message: '720p not ready' });
@@ -206,8 +206,10 @@ const WebSeriesController = {
             if (!episode) return res.status(404).json({ message: 'episode not found' });
 
             episode.qualities = { ...(episode.qualities || {}) };
-            if (up720?.finalUrl) episode.qualities['720p'] = "https://"+ up720.finalUrl;
-            if (up1080?.finalUrl) episode.qualities['1080p'] = "https://"+up1080.finalUrl;
+            if (up720?.finalUrl) episode.qualities['720p'] = up720.finalUrl.startsWith('https://') ? up720.finalUrl : `https://${up720.finalUrl}`;
+            if (up1080?.finalUrl) episode.qualities['1080p'] = up1080.finalUrl.startsWith('https://') ? up1080.finalUrl : `https://${up1080.finalUrl}`;
+            if (episodeTitle) episode.episodeTitle = episodeTitle;
+            if (episodeDescription) episode.episodeDescription = episodeDescription;
             await series.save();
 
             try { if (up720?.assembledPath) fs.unlinkSync(up720.assembledPath); } catch {}
@@ -284,7 +286,7 @@ const WebSeriesController = {
     addEpisodeWithChunks: async (req, res) => {
         try {
             const { id, seasonNumber } = req.params;
-            const { uploadId720, uploadId1080, episodeNumber } = req.body;
+            const { uploadId720, uploadId1080, episodeNumber, episodeTitle, episodeDescription } = req.body;
             if (!episodeNumber) return res.status(400).json({ message: 'episodeNumber required' });
 
             const up720 = uploadId720 ? uploadProgress.get(uploadId720) : null;
@@ -300,10 +302,15 @@ const WebSeriesController = {
             if (epExists) return res.status(400).json({ message: 'episode already exists' });
 
             const qualities = {};
-            if (up720?.finalUrl) qualities['720p'] = "https://"+up720.finalUrl;
-            if (up1080?.finalUrl) qualities['1080p'] = "https://"+up1080.finalUrl;
+            if (up720?.finalUrl) qualities['720p'] = up720.finalUrl.startsWith('https://') ? up720.finalUrl : `https://${up720.finalUrl}`;
+            if (up1080?.finalUrl) qualities['1080p'] = up1080.finalUrl.startsWith('https://') ? up1080.finalUrl : `https://${up1080.finalUrl}`;
 
-            season.episodes.push({ episodeNumber: Number(episodeNumber), qualities });
+            season.episodes.push({ 
+                episodeNumber: Number(episodeNumber), 
+                episodeTitle, 
+                episodeDescription, 
+                qualities 
+            });
             await series.save();
 
             // Cleanup assembled files and sessions
