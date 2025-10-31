@@ -189,105 +189,39 @@ const WebSeriesController = {
     },
 
     // Update episode with chunked upload (replace qualities optionally)
-    // updateEpisodeWithChunks: async (req, res) => {
-    //     try {
-    //         const { id, seasonNumber, episodeNumber } = req.params;
-    //         const { uploadId720, uploadId1080 } = req.body;
-    //         const up720 = uploadId720 ? uploadProgress.get(uploadId720) : null;
-    //         const up1080 = uploadId1080 ? uploadProgress.get(uploadId1080) : null;
-    //         if (uploadId720 && (!up720 || up720.status !== 'completed')) return res.status(400).json({ message: '720p not ready' });
-    //         if (uploadId1080 && (!up1080 || up1080.status !== 'completed')) return res.status(400).json({ message: '1080p not ready' });
+    updateEpisodeWithChunks: async (req, res) => {
+        try {
+            const { id, seasonNumber, episodeNumber } = req.params;
+            const { uploadId720, uploadId1080 } = req.body;
+            const up720 = uploadId720 ? uploadProgress.get(uploadId720) : null;
+            const up1080 = uploadId1080 ? uploadProgress.get(uploadId1080) : null;
+            if (uploadId720 && (!up720 || up720.status !== 'completed')) return res.status(400).json({ message: '720p not ready' });
+            if (uploadId1080 && (!up1080 || up1080.status !== 'completed')) return res.status(400).json({ message: '1080p not ready' });
 
-    //         const series = await WebSeriesModel.findById(id);
-    //         if (!series) return res.status(404).json({ message: 'series not found' });
-    //         const season = series.seasons.find(s => s.seasonNumber === Number(seasonNumber));
-    //         if (!season) return res.status(404).json({ message: 'season not found' });
-    //         const episode = season.episodes.find(e => e.episodeNumber === Number(episodeNumber));
-    //         if (!episode) return res.status(404).json({ message: 'episode not found' });
+            const series = await WebSeriesModel.findById(id);
+            if (!series) return res.status(404).json({ message: 'series not found' });
+            const season = series.seasons.find(s => s.seasonNumber === Number(seasonNumber));
+            if (!season) return res.status(404).json({ message: 'season not found' });
+            const episode = season.episodes.find(e => e.episodeNumber === Number(episodeNumber));
+            if (!episode) return res.status(404).json({ message: 'episode not found' });
 
-    //         episode.qualities = { ...(episode.qualities || {}) };
-    //         if (up720?.finalUrl) episode.qualities['720p'] = "https://" + up720.finalUrl;
-    //         if (up1080?.finalUrl) episode.qualities['1080p'] = "https://" +up1080.finalUrl;
-    //         await series.save();
+            episode.qualities = { ...(episode.qualities || {}) };
+            if (up720?.finalUrl) episode.qualities['720p'] = "https://"+ up720.finalUrl;
+            if (up1080?.finalUrl) episode.qualities['1080p'] = "https://"+up1080.finalUrl;
+            await series.save();
 
-    //         try { if (up720?.assembledPath) fs.unlinkSync(up720.assembledPath); } catch {}
-    //         try { if (up1080?.assembledPath) fs.unlinkSync(up1080.assembledPath); } catch {}
-    //         if (uploadId720) uploadProgress.delete(uploadId720);
-    //         if (uploadId1080) uploadProgress.delete(uploadId1080);
+            try { if (up720?.assembledPath) fs.unlinkSync(up720.assembledPath); } catch {}
+            try { if (up1080?.assembledPath) fs.unlinkSync(up1080.assembledPath); } catch {}
+            if (uploadId720) uploadProgress.delete(uploadId720);
+            if (uploadId1080) uploadProgress.delete(uploadId1080);
 
-    //         return res.status(200).json({ message: 'episode updated', episode });
-    //     } catch (error) {
-    //         return res.status(500).json({ message: 'server error', error: error.message });
-    //     }
-    // },
+            return res.status(200).json({ message: 'episode updated', episode });
+        } catch (error) {
+            return res.status(500).json({ message: 'server error', error: error.message });
+        }
+    },
 // Update episode with chunked upload (replace qualities optionally)
-updateEpisodeWithChunks: async (req, res) => {
-  try {
-    const { id, seasonNumber, episodeNumber } = req.params;
-    const { uploadId720, uploadId1080 } = req.body;
 
-    // Get upload progress info
-    const up720 = uploadId720 ? uploadProgress.get(uploadId720) : null;
-    const up1080 = uploadId1080 ? uploadProgress.get(uploadId1080) : null;
-
-    // Validation for completed uploads
-    if (uploadId720 && (!up720 || up720.status !== "completed"))
-      return res.status(400).json({ message: "720p not ready" });
-    if (uploadId1080 && (!up1080 || up1080.status !== "completed"))
-      return res.status(400).json({ message: "1080p not ready" });
-
-    // Fetch series, season, and episode
-    const series = await WebSeriesModel.findById(id);
-    if (!series) return res.status(404).json({ message: "Series not found" });
-
-    const season = series.seasons.find(
-      (s) => s.seasonNumber === Number(seasonNumber)
-    );
-    if (!season) return res.status(404).json({ message: "Season not found" });
-
-    const episode = season.episodes.find(
-      (e) => e.episodeNumber === Number(episodeNumber)
-    );
-    if (!episode) return res.status(404).json({ message: "Episode not found" });
-
-    // Helper to ensure URL has https://
-    const formatUrl = (url) =>
-      url?.startsWith("https://") ? url : "https://" + url;
-
-    // Merge & update qualities
-    episode.qualities = { ...(episode.qualities || {}) };
-    if (up720?.finalUrl) episode.qualities["720p"] = formatUrl(up720.finalUrl);
-    if (up1080?.finalUrl)
-      episode.qualities["1080p"] = formatUrl(up1080.finalUrl);
-
-    await series.save();
-
-    // Clean up temp files
-    const safeDelete = (path) => {
-      try {
-        if (path && fs.existsSync(path)) fs.unlinkSync(path);
-      } catch (err) {
-        console.warn("Failed to delete temp file:", err.message);
-      }
-    };
-
-    safeDelete(up720?.assembledPath);
-    safeDelete(up1080?.assembledPath);
-
-    if (uploadId720) uploadProgress.delete(uploadId720);
-    if (uploadId1080) uploadProgress.delete(uploadId1080);
-
-    return res.status(200).json({
-      message: "Episode updated successfully",
-      episode,
-    });
-  } catch (error) {
-    console.error("Update episode error:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
-  }
-},
 
 	// Add a new season to a series
 	addSeason: async (req, res) => {
