@@ -300,8 +300,8 @@ const WebSeriesController = {
             if (epExists) return res.status(400).json({ message: 'episode already exists' });
 
             const qualities = {};
-            if (up720?.finalUrl) qualities['720p'] = up720.finalUrl;
-            if (up1080?.finalUrl) qualities['1080p'] = up1080.finalUrl;
+            if (up720?.finalUrl) qualities['720p'] = "https://"+up720.finalUrl;
+            if (up1080?.finalUrl) qualities['1080p'] = "https://"+up1080.finalUrl;
 
             season.episodes.push({ episodeNumber: Number(episodeNumber), qualities });
             await series.save();
