@@ -6,12 +6,15 @@ import authMiddleware from "../Middleware/Auth.js";
 const UserRouter = express.Router();
 
 UserRouter.post("/register", UserController.register);
+UserRouter.post("/verify-otp", UserController.verifyOTP);
 UserRouter.post("/login", UserController.Login);
 UserRouter.get("/userinfo/:token", UserController.userinfo);
 UserRouter.put("/edit/:id", UserController.userEdit);
 UserRouter.get("/list", UserController.listUsers);
 UserRouter.post("/withdraw", UserController.withdrawPoints);
 UserRouter.get("/premium-pricing", UserController.getPremiumPricing);
+UserRouter.post("/remove-device", UserController.removeDevice);
+UserRouter.get("/devices/:userId", UserController.getUserDevices);
 // UserRouter.post("/upgrade", authMiddleware, UserController.upgradePremium);
 
 export default UserRouter;

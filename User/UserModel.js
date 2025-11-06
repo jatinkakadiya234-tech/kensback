@@ -31,6 +31,15 @@ const UserSchema = new mongoose.Schema({
   },
 
   role: { type: String, enum: ["user", "admin"], default: "user" },
+  
+  // Premium features
+  premiumType: { type: String, enum: ["monthly", "yearly"], default: null },
+  maxDevices: { type: Number, default: 1 },
+  activeDevices: [{
+    deviceId: String,
+    deviceInfo: String,
+    lastActive: { type: Date, default: Date.now }
+  }],
 
   // Wallet
   walletPoints: { type: Number, default: 0 },

@@ -79,9 +79,15 @@ const OrderController = {
         razorpay_order_id,
       });
 
+      // Get premium plan to set maxDevices
+      const PremiumModel = (await import('../Premium/PremiumModel.js')).default;
+      const premiumPlan = await PremiumModel.findOne({ name: type, isActive: true });
+      const maxDevices = premiumPlan?.features?.maxDevices || 2;
+
       await UserModel.findByIdAndUpdate(user._id, {
         isPremium: true,
         premiumType: type,
+        maxDevices: maxDevices,
       });
 
       // Find referring user and add 10 points
